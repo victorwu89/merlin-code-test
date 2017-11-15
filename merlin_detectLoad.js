@@ -1,86 +1,81 @@
 /***
 * Author: Victor Wu
-* Purpose: Merlin Guides auto-load dilenma using ES5 standards
-* Create a piece of js code compatible across all browsers to detect a state of loading
-* Code which is given a callback, and tries to detect for these.
-* If page doesn't appear to be loading, then call the callbaack, if it does then wait until it has finished (then calls it)
-* Version: 1.0
+* Purpose: Merlin Guides auto-load dilenma using ES5 standards to create a piece of js code compatible across all browsers to detect a state of loading. Code should be given a callback, and that tries to detect for specific body element changes. If page doesn't appear to be loading, then call the callbaack, if it does then wait until it has finished (then calls it)
+* Version: 2.0
+* Description: I've decided to use vanilla javascript with the use of Mutation Observers. Time was an issue trying to find a way to hack ajax using vanilla js so I figured I'd give this a shot using MutationObserver. Only working with the addition and removing of elements as of now and assumes the webpage contains a body.
+* Browser Compabibility: https://caniuse.com/mutationobserver/embed
 ***/
+
 //function detectLoad that has the option of taking in values if necessary as well as the callback function to call
 function detectLoad(val, callback){
-  //use a JSON to store data so it's easy to manage content changes
-  var testObj = {
-      "image": {
-        "src": "//loading.io/assets/img/default-loader.gif",
-        "id": "merlin_test1",
-        "height": "50",
-        "width": "50"
-      },
-      "text": {
-        "id": "merlin_test2",
-        "content": "loading text"
-      },
-      "class": "merlin_test_case"
-  }
 
-  //create necessary variables for the stage
-  var loading = new Image();
-  var paragraph = document.createElement('p');
-  var texts = document.createTextNode(testObj.text.content);
-
-  //create loading gif for test1
-  loading.src = testObj.image.src;
-  loading.id = testObj.image.id;
-  loading.height = testObj.image.height;
-  loading.width = testObj.image.width;
-  loading.className = testObj.class;
-  //create text for test2 if previous test fail
-  paragraph.id = testObj.text.id;
-  paragraph.className = testObj.class;
-  console.log('setting the stage');
+  //setup variable for observerConfig for use with ObeserverMutation
+  var observerConfig = {
+          attributes: true,
+          childList: true,
+          characterData: true, //checks for data changes
+          subtree: true
+  },
+ targetNode  =  document.body ? document.body : document.getElementsByTagName("body")[0],
+ log,
+ bool = false;
 
   //readyStateCheckInterval is a function to check for the readyState through intervals
   var readyStateCheckInterval = setInterval(function() {
-    //If complete is found than append necessary elements to the stage and clear the interval
-      if(document.readyState === "loading"){}
-      else if(document.readyState === "interactive"){}
-      else if (document.readyState === "complete") {
+    //list out each reayState variable
+      switch(document.readyState){
+        case 'loading':
+          console.log('page loading');
+          break;
+        case 'interactive':
+          console.log('page interactive');
+          break;
+        //If page is fully loaded then attach observer mutation to the body
+        case 'complete':
           clearInterval(readyStateCheckInterval);
-          console.log('ready state change');
-          document.body.appendChild(loading);
-          paragraph.appendChild(texts);
-          document.body.appendChild(paragraph);
-          //hides the elements created so they aren't seen
-          hideMerlinElements();
-          //calls the callback with some parameters
-          callback(testObj, loading);
-      }else{
-        console.log('hmmm... readyState does not appear to be registering');
-        //fallback in case somehow the readyState isn't found run callback regardless
-        callback();
+          console.log('page complete');
+          ///create MutationObserver object
+          var mutationObs = new MutationObserver(function(mutations) {
+            bool = true;
+            //run through each mutation or change detected on the body
+            mutations.forEach(function(mutation, index ,array) {
+              //console.log('Mutation type: ' + mutation.type);
+              //any changes with children of the targetNode
+              if (mutation.type == 'childList' ) {
+                //check to see if there were any insertion or deleting of content OR changes to attributes (detect loaders)
+                if (mutation.addedNodes.length >= 1) {
+                  log = 'Added ' + mutation.addedNodes.length + ' tag(s). Adding Merlin elements.';
+                }else if (mutation.removedNodes.length >= 1) {
+                  log =  'Removed ' + mutation.removedNodes.length + ' tag(s). Adding Merlin elements.';
+                }
+                callback(log);
+              }/* Tried to add feature to detect certain display attributes
+              else if(mutation.type == 'attributes'){
+                  log = 'Changed ' + mutation.attributeName + ' adding Merlin elements.';
+                  callback(log);
+              }*/
+            });//end forEach
+          }); //end MutationObserver object creation
+          // Listen to all changes to body and child nodes
+          mutationObs.observe(targetNode, observerConfig);
+          //if no changes are loading then run callback after a time out after 3 seconds
+          setTimeout(function(){
+            if (!bool){ callback(); }
+          }, 4000);
+          break;
+        default:
+          //fallback in case somehow the readyState isn't found run callback regardless
+          callback();
+          break;
       }
-  }, 10);
-
-}
-//function to hide all Elements created by Merlin
-function hideMerlinElements(){
-  var merlinEle = document.getElementsByClassName('merlin_test_case');
-  for (var i = 0; i < merlinEle.length; i++) {
-    merlinEle[i].style.visibility = "hidden";
-  }
-}
+    }, 10); //end setInterval
+}// end detectLoad
 
 //callBack function to simply console out messages for now
-function consoleLog(testObj, loading){
+function consoleLog(text){
+ text = text ? text : 'add Merlin elements';
   //going to use if and else if (getting dirty)
-  if( loading.complete && document.getElementById(testObj.image.id) ){
-    console.log('gif loaded callback called');
-  }else if( document.getElementById(testObj.text.id) && document.getElementById(testObj.text.id).innerHTML === testObj.text.content ){
-    console.log('text loaded callback called');
-  }else{
-    console.log('not loading but callback called anyways');
-  }
-
+  console.log(text);
 }
 
 //run detectLoad
