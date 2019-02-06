@@ -1,4 +1,4 @@
-##  Title: merlin-code-test
+###  Title: Merlin Code - Qualitative Interview Test 
 <strong>Author:</strong> Victor Wu <br />
 <strong>Purpose:</strong> Merlin Guides auto-load dilenma using ES5 standards to create a piece of js code compatible across all browsers to detect a state of loading. Code should be given a callback, and that tries to detect for specific body element changes. If page doesn't appear to be loading, then call the callbaack, if it does then wait until it has finished (then calls it) <br />
 <strong>Version:</strong> 3.0 <br />
